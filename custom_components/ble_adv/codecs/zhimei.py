@@ -321,6 +321,12 @@ TRANS_FAN_V1_REV = TranslatorSet(TRANS_FAN_V1)
 TRANS_FAN_V1_REV.replace(Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA6).eq("arg0", 1)))
 TRANS_FAN_V1_REV.replace(Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6).eq("arg0", 2)))
 
+# Devices treating 0xA6 as a light toggle whatever arg0 (remote alternates arg0 1/2)
+TRANS_FAN_V1_TOGGLE = TranslatorSet(TRANS_FAN_V1)
+TRANS_FAN_V1_TOGGLE.replace(Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA6).eq("arg0", 2)).no_reverse())
+TRANS_FAN_V1_TOGGLE.replace(Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6).eq("arg0", 1)).no_reverse())
+TRANS_FAN_V1_TOGGLE.append(Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0xA6)).no_direct())
+
 CODECS = [
     # Zhi Mei standard Android App
     ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03)
@@ -338,7 +344,8 @@ CODECS = [
     ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(None, 0xFF).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(None, 0xFF)
         .add_translators(TRANS_FAN_V1)
-        .add_translator_set("rev_on_off", TRANS_FAN_V1_REV),
+        .add_translator_set("rev_on_off", TRANS_FAN_V1_REV)
+        .add_translator_set("toggle", TRANS_FAN_V1_TOGGLE),
     ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
     ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(None, 0xFF).add_translators(TRANS_V1),
     # Zhi Guang 2

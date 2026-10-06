@@ -1,8 +1,10 @@
+# ruff: noqa: S101
 """Zhi Mei pro Unit Tests."""
 
 import pytest
+from ble_adv.codecs.models import BleAdvEntAttr
 
-from . import _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
+from . import CODECS, _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -962,3 +964,46 @@ class TestEncoderZhimeiFanRemote(_TestEncoderFull):
 )
 class TestEncoderZhimeiSets(_TestEncoderFullAll):
     """Zhimei Encoder / Decoder Full ALL tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # REMOTE light button: arg0 alternates 1 / 2, both are a toggle
+        (
+            "zhimei_fan_v1b",
+            [],
+            "toggle",
+            "1E.FF.00.00.00.48.46.4B.4A.51.02.B9.A6.07.82.AC.2E.B2.F0.91.B7.AB.E1.02.89.10.11.12.13.14.15",
+            "cmd: 0xA6, param: 0x00, args: [1,0,0]",
+            "id: 0x00001221, index: 255, tx: 120, seed: 0x006A",
+            "light_0: ['on'] / {'on': 'toggle'}",
+        ),
+        (
+            "zhimei_fan_v1b",
+            [],
+            "toggle",
+            "1E.FF.00.00.00.48.46.4B.4A.51.02.BA.A6.07.82.AC.2E.B2.FD.67.BB.A2.E4.46.CB.10.11.12.13.14.15",
+            "cmd: 0xA6, param: 0x00, args: [2,0,0]",
+            "id: 0x00001221, index: 255, tx: 121, seed: 0x006A",
+            "light_0: ['on'] / {'on': 'toggle'}",
+        ),
+    ],
+)
+class TestEncoderZhimeiToggleSet(_TestEncoderFullAll):
+    """Zhimei Encoder / Decoder 'toggle' set: decoding only, toggle is never sent."""
+
+    _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    ("attrs", "expected"),
+    [
+        ({"on": True}, ["cmd: 0xA6, param: 0x00, args: [2,0,0]"]),
+        ({"on": False}, ["cmd: 0xA6, param: 0x00, args: [1,0,0]"]),
+    ],
+)
+def test_toggle_set_light_on_off(attrs: dict, expected: list[str]) -> None:
+    """In 'toggle' set, explicit ON / OFF are still sent as 0xA6 with the default arg0."""
+    ent_attr = BleAdvEntAttr(["on"], attrs, "light", 0)
+    assert [repr(enc_cmd) for enc_cmd in CODECS["zhimei_fan_v1b"].ent_to_enc(ent_attr, "toggle")] == expected
